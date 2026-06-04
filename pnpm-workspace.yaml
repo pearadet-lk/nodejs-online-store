@@ -1,0 +1,4 @@
+packages:
+  - 'src/BuildingBlocks/*'
+  - 'src/Services/*'
+  - 'src/frontend/angular'
