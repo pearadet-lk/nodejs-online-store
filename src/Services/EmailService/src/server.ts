@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
-import { createServiceApp, startService, type EmailSendStatusDto } from '@online-store/contracts';
+import { createServiceApp, servicePort, startService, type EmailSendStatusDto } from '@online-store/contracts';
 
-const PORT = 5164;
+const PORT = servicePort(5164);
 const statusByOrderId = new Map<string, EmailSendStatusDto>();
 
 const app = createServiceApp('email-service');

@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
-import { createServiceApp, startService, type CartDto } from '@online-store/contracts';
+import { createServiceApp, servicePort, startService, type CartDto } from '@online-store/contracts';
 
-const PORT = 5078;
+const PORT = servicePort(5078);
 const carts = new Map<string, CartDto>();
 
 const app = createServiceApp('cart-service');

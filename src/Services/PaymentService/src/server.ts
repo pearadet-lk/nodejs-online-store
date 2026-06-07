@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { createServiceApp, startService, type PaymentDto } from '@online-store/contracts';
+import { createServiceApp, servicePort, startService, type PaymentDto } from '@online-store/contracts';
 
-const PORT = 5031;
+const PORT = servicePort(5031);
 const paymentsByOrderId = new Map<string, PaymentDto>();
 const idempotency = new Map<string, { requestHash: string; payment: PaymentDto }>();
 

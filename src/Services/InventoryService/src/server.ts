@@ -1,11 +1,12 @@
 import {
   buildCatalogProducts,
   createServiceApp,
+  servicePort,
   startService,
   type InventoryItemDto
 } from '@online-store/contracts';
 
-const PORT = 5212;
+const PORT = servicePort(5212);
 const items = new Map<string, InventoryItemDto>();
 
 for (const p of buildCatalogProducts()) {

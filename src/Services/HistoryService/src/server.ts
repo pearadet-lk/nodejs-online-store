@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
-import { createServiceApp, startService, type OrderHistoryEventDto } from '@online-store/contracts';
+import { createServiceApp, servicePort, startService, type OrderHistoryEventDto } from '@online-store/contracts';
 
-const PORT = 5029;
+const PORT = servicePort(5029);
 const eventsByUser = new Map<string, OrderHistoryEventDto[]>();
 
 const app = createServiceApp('history-service');

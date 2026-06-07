@@ -1,0 +1,11 @@
+**/node_modules
+.git
+.turbo
+dist
+.angular
+coverage
+.port-forward
+*.log
+.env
+README.md
+LICENSE

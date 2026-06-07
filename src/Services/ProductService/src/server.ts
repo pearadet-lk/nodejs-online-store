@@ -2,11 +2,12 @@ import { randomUUID } from 'node:crypto';
 import {
   buildCatalogProducts,
   createServiceApp,
+  servicePort,
   startService,
   type ProductDto
 } from '@online-store/contracts';
 
-const PORT = 5225;
+const PORT = servicePort(5225);
 const products = new Map<string, ProductDto>();
 
 for (const p of buildCatalogProducts()) {

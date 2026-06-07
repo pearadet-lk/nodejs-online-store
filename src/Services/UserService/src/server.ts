@@ -8,12 +8,13 @@ import {
   DEMO_PASSWORD,
   DEMO_USER_ID,
   loadAuthConfig,
+  servicePort,
   startService,
   type LoginResponse,
   type UserProfileDto
 } from '@online-store/contracts';
 
-const PORT = 5121;
+const PORT = servicePort(5121);
 const auth = loadAuthConfig();
 
 type UserAccount = { profile: UserProfileDto; passwordHash: string };

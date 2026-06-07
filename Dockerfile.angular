@@ -1,0 +1,34 @@
+FROM node:24-alpine AS build
+RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
+WORKDIR /app
+
+# Flat node_modules so devDependency binaries (@angular/cli, etc.) resolve in Docker.
+RUN echo "node-linker=hoisted" > .npmrc
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+COPY src/BuildingBlocks/contracts/package.json ./src/BuildingBlocks/contracts/
+COPY src/frontend/angular/package.json ./src/frontend/angular/
+COPY src/Services/Gateway/package.json ./src/Services/Gateway/
+COPY src/Services/CartService/package.json ./src/Services/CartService/
+COPY src/Services/EmailService/package.json ./src/Services/EmailService/
+COPY src/Services/HistoryService/package.json ./src/Services/HistoryService/
+COPY src/Services/InventoryService/package.json ./src/Services/InventoryService/
+COPY src/Services/OrderService/package.json ./src/Services/OrderService/
+COPY src/Services/PaymentService/package.json ./src/Services/PaymentService/
+COPY src/Services/ProductService/package.json ./src/Services/ProductService/
+COPY src/Services/ShippingService/package.json ./src/Services/ShippingService/
+COPY src/Services/UserService/package.json ./src/Services/UserService/
+
+RUN pnpm install --frozen-lockfile
+
+COPY src/frontend/angular/angular.json ./src/frontend/angular/angular.json
+COPY src/frontend/angular/tsconfig.json ./src/frontend/angular/tsconfig.json
+COPY src/frontend/angular/tsconfig.app.json ./src/frontend/angular/tsconfig.app.json
+COPY src/frontend/angular/public ./src/frontend/angular/public
+COPY src/frontend/angular/src ./src/frontend/angular/src
+RUN pnpm --filter @online-store/angular build
+
+FROM nginx:1.27-alpine
+COPY k8s/nginx-angular.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/src/frontend/angular/dist/angular/browser /usr/share/nginx/html
+EXPOSE 8080

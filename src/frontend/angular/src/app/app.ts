@@ -1,5 +1,6 @@
 import { JsonPipe, NgFor, NgIf } from '@angular/common';
 import { Component } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 
 type Product = {
   productId: string;
@@ -35,7 +36,7 @@ const authStorageKey = 'online-store-auth';
 
 @Component({
   selector: 'app-root',
-  imports: [NgIf, NgFor, JsonPipe],
+  imports: [NgIf, NgFor, JsonPipe, FormsModule],
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })
@@ -330,7 +331,7 @@ export class App {
     const payload: Product = {
       productId: this.editingProductId ?? '',
       name: this.adminForm.name.trim(),
-      description: this.adminForm.description.trim(),
+      description: (this.adminForm.description ?? '').trim(),
       price: Number(this.adminForm.price),
       isActive: this.adminForm.isActive ?? true
     };

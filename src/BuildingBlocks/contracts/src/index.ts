@@ -1,3 +1,4 @@
+export * from './service-env.js';
 export * from './types.js';
 export * from './catalog-seed.js';
 export * from './auth-config.js';

@@ -7,7 +7,11 @@
     "dev:frontend": "turbo run dev --filter=@online-store/angular",
     "build": "turbo run build",
     "lint": "turbo run lint",
-    "test": "turbo run test"
+    "test": "turbo run test",
+    "minikube:start": "powershell -ExecutionPolicy Bypass -File ./scripts/start-minikube.ps1",
+    "minikube:deploy": "powershell -ExecutionPolicy Bypass -File ./scripts/deploy-minikube.ps1",
+    "minikube:port-forward": "powershell -ExecutionPolicy Bypass -File ./scripts/port-forward-minikube.ps1",
+    "minikube:teardown": "powershell -ExecutionPolicy Bypass -File ./scripts/teardown-minikube.ps1"
   },
   "devDependencies": {
     "turbo": "^2.5.4",
@@ -15,6 +19,6 @@
   },
   "packageManager": "pnpm@9.15.0",
   "engines": {
-    "node": ">=20"
+    "node": ">=22.22.3"
   }
 }

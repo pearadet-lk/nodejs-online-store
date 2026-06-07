@@ -1,17 +1,20 @@
 import cors from '@fastify/cors';
 import jwt from 'jsonwebtoken';
 import Fastify from 'fastify';
-import { loadAuthConfig, startService } from '@online-store/contracts';
+import { loadAuthConfig, servicePort, startService } from '@online-store/contracts';
 import { ANONYMOUS_USER_PATHS, resolveCluster } from './clusters.js';
 import { newPaymentIdempotencyKey, runCheckout, type CheckoutRequest } from './checkout.js';
 
-const PORT = 5152;
+const PORT = servicePort(5152);
 const auth = loadAuthConfig();
 
 type JwtPayload = { sub: string; email?: string; name?: string };
 
 const app = Fastify({ logger: true });
-await app.register(cors, { origin: ['http://localhost:4200'], credentials: true });
+await app.register(cors, {
+  origin: (process.env.CORS_ORIGIN ?? 'http://localhost:4200').split(','),
+  credentials: true
+});
 
 app.get('/health', async () => ({ service: 'gateway', status: 'ok' }));
 
@@ -44,7 +47,13 @@ async function proxyRequest(
   let downstreamPath: string;
   if (cluster.name === 'admin-product') {
     const suffix = url.pathname.slice('/api/admin/products'.length);
-    downstreamPath = suffix ? `/products${suffix}` : '/admin/products';
+    if (suffix) {
+      downstreamPath = `/products${suffix}`;
+    } else if (req.method === 'GET') {
+      downstreamPath = '/admin/products';
+    } else {
+      downstreamPath = '/products';
+    }
   } else {
     downstreamPath = url.pathname.replace('/api', '') || '/';
   }

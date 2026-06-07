@@ -1,13 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
-import type { CartItemDto, OrderDto } from '@online-store/contracts';
-
-const INVENTORY = 'http://127.0.0.1:5212';
-const ORDERS = 'http://127.0.0.1:5240';
-const PAYMENTS = 'http://127.0.0.1:5031';
-const SHIPPING = 'http://127.0.0.1:5219';
-const HISTORY = 'http://127.0.0.1:5029';
-const CARTS = 'http://127.0.0.1:5078';
-const EMAIL = 'http://127.0.0.1:5164';
+import { serviceUrl, type CartItemDto, type OrderDto } from '@online-store/contracts';
 
 export type CheckoutRequest = {
   userId: string;
@@ -24,15 +16,20 @@ type IdempotencyRecord = {
 
 const idempotencyStore = new Map<string, IdempotencyRecord>();
 
-function sha256(value: string): string {
-  return createHash('sha256').update(value).digest('hex');
+function urls() {
+  return {
+    inventory: serviceUrl('INVENTORY_SERVICE_URL', 'http://127.0.0.1:5212'),
+    orders: serviceUrl('ORDER_SERVICE_URL', 'http://127.0.0.1:5240'),
+    payments: serviceUrl('PAYMENT_SERVICE_URL', 'http://127.0.0.1:5031'),
+    shipping: serviceUrl('SHIPPING_SERVICE_URL', 'http://127.0.0.1:5219'),
+    history: serviceUrl('HISTORY_SERVICE_URL', 'http://127.0.0.1:5029'),
+    carts: serviceUrl('CART_SERVICE_URL', 'http://127.0.0.1:5078'),
+    email: serviceUrl('EMAIL_SERVICE_URL', 'http://127.0.0.1:5164')
+  };
 }
 
-async function call(
-  url: string,
-  init: RequestInit & { headers?: Record<string, string> } = {}
-): Promise<Response> {
-  return fetch(url, init);
+function sha256(value: string): string {
+  return createHash('sha256').update(value).digest('hex');
 }
 
 export async function runCheckout(
@@ -41,6 +38,7 @@ export async function runCheckout(
   userEmail: string,
   paymentIdempotencyKey: string
 ): Promise<{ status: number; body: unknown }> {
+  const u = urls();
   const scopedKey = `checkout:${idempotencyKey}`;
   const requestHash = sha256(JSON.stringify(body));
 
@@ -67,8 +65,8 @@ export async function runCheckout(
 
   try {
     for (const item of body.items) {
-      const res = await call(
-        `${INVENTORY}/inventory/${item.productId}/reserve?quantity=${item.quantity}`,
+      const res = await fetch(
+        `${u.inventory}/inventory/${item.productId}/reserve?quantity=${item.quantity}`,
         { method: 'POST' }
       );
       if (!res.ok) {
@@ -77,7 +75,7 @@ export async function runCheckout(
       reserved.push({ productId: item.productId, quantity: item.quantity });
     }
 
-    const orderRes = await call(`${ORDERS}/orders`, {
+    const orderRes = await fetch(`${u.orders}/orders`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
@@ -88,7 +86,7 @@ export async function runCheckout(
     const order = (await orderRes.json()) as OrderDto;
     orderId = order.orderId;
 
-    const payRes = await call(`${PAYMENTS}/payments/authorize`, {
+    const payRes = await fetch(`${u.payments}/payments/authorize`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -106,8 +104,8 @@ export async function runCheckout(
     }
 
     for (const item of body.items) {
-      const res = await call(
-        `${INVENTORY}/inventory/${item.productId}/commit?quantity=${item.quantity}`,
+      const res = await fetch(
+        `${u.inventory}/inventory/${item.productId}/commit?quantity=${item.quantity}`,
         { method: 'POST' }
       );
       if (!res.ok) {
@@ -115,7 +113,7 @@ export async function runCheckout(
       }
     }
 
-    const completeRes = await call(`${ORDERS}/orders/${order.orderId}/complete`, {
+    const completeRes = await fetch(`${u.orders}/orders/${order.orderId}/complete`, {
       method: 'POST'
     });
     if (!completeRes.ok) {
@@ -123,9 +121,9 @@ export async function runCheckout(
     }
     const completedOrder = (await completeRes.json()) as OrderDto;
 
-    await call(`${SHIPPING}/shipments/${order.orderId}`, { method: 'POST' });
+    await fetch(`${u.shipping}/shipments/${order.orderId}`, { method: 'POST' });
 
-    await call(`${HISTORY}/history/events`, {
+    await fetch(`${u.history}/history/events`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -138,13 +136,13 @@ export async function runCheckout(
       })
     });
 
-    await call(`${EMAIL}/email/record`, {
+    await fetch(`${u.email}/email/record`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ orderId: order.orderId, customerEmail: userEmail })
     });
 
-    await call(`${CARTS}/carts/${body.userId}`, { method: 'DELETE' });
+    await fetch(`${u.carts}/carts/${body.userId}`, { method: 'DELETE' });
 
     const responseBody = {
       order: completedOrder,
@@ -160,13 +158,13 @@ export async function runCheckout(
     return { status: 200, body: responseBody };
   } catch (err) {
     for (const r of reserved) {
-      await call(
-        `${INVENTORY}/inventory/${r.productId}/release?quantity=${r.quantity}`,
+      await fetch(
+        `${u.inventory}/inventory/${r.productId}/release?quantity=${r.quantity}`,
         { method: 'POST' }
       ).catch(() => undefined);
     }
     if (orderId) {
-      await call(`${ORDERS}/orders/${orderId}/fail`, { method: 'POST' }).catch(() => undefined);
+      await fetch(`${u.orders}/orders/${orderId}/fail`, { method: 'POST' }).catch(() => undefined);
     }
     idempotencyStore.set(scopedKey, { requestHash, inProgress: false });
     const message = err instanceof Error ? err.message : 'Checkout failed.';
